@@ -1,5 +1,6 @@
 const express = require('express');
 const MongoClient = require('mongodb').MongoClient;
+const objectId = require("mongodb").ObjectID;
 const assert = require('assert');
 
 const app = express();
@@ -8,6 +9,7 @@ const jsonParser = express.json();
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
   next();
 });
 
@@ -58,9 +60,10 @@ app.post("/api/employees", jsonParser, function(req, res) {
   });
 });
 
-app.put("/api/users", jsonParser, function(req, res){
+app.put("/api/employees", jsonParser, function(req, res){
   if(!req.body) return res.sendStatus(400);
-  const id = new objectId(req.body.id);
+
+  const id = new objectId(req.body._id);
   const userSurname = req.body.surname;
   const userName = req.body.name;
   const userPatronymic = req.body.patronymic;
@@ -68,31 +71,26 @@ app.put("/api/users", jsonParser, function(req, res){
   const userEmail = req.body.email;
 
   const collection = req.app.locals.employees;
-  collection.findOneAndUpdate(
-  {
-    _id: id
-  },
-  {
-    $set:
-    {
-      surname: userSurname,
-      name: userName,
-      patronymic: userPatronymic,
-      position: userPosition,
-      email: userEmail
-    }
-  },
-  {
-    returnOriginal: false
-  },
-  function(err, result) {
-    if (err) return console.log(err);
-    const user = result.value;
-    res.send(user);
-  });
+  collection.findOneAndUpdate({
+      _id: id
+    }, {
+      $set: {
+        surname: userSurname,
+        name: userName,
+        patronymic: userPatronymic,
+        position: userPosition,
+        email: userEmail
+      }
+    },{
+      returnOriginal: false
+    },
+    function(err, result) {
+      if (err) return console.log(err);
+      res.send(result.value);
+    });
 });
 
-app.delete("/api/users/:id", function(req, res) {
+app.delete("/api/employees/:id", function(req, res) {
   const id = new objectId(req.params.id);
   const collection = req.app.locals.employees;
   collection.findOneAndDelete({_id: id}, function(err, result) {
