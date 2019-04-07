@@ -101,10 +101,17 @@ app.post('/api/instances/tags', jsonParser, function(req, res) {
   if (!req.body) return res.sendStatus(400);
 
   const collection = req.app.locals.instances;
-  collection.find({tags: { $all: req.body } }).toArray(function(err, docs) {
-    assert.equal(err, null);
-    res.send(docs)
-  });
+  if(req.body.length == 0){
+    collection.find({}).toArray(function(err, docs) {
+      assert.equal(err, null);
+      res.send(docs)
+    });
+  } else {
+    collection.find({tags: { $all: req.body } }).toArray(function(err, docs) {
+      assert.equal(err, null);
+      res.send(docs)
+    });
+  }
 })
 
 app.post("/api/instances", jsonParser, function(req, res) {
