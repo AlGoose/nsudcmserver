@@ -34,22 +34,6 @@ app.use(employees);
 app.use(instances);
 app.use(samples);
 
-/*______________________________________________________________________________*/
-app.get("/api/test", function(req, res){
-  console.log("CORS POLICY TESTING");
-  const axios = require('axios');
-  axios
-      .get('http://localhost:8042/patients/')
-      .then(function(result) {
-        res.send(result.data);
-      })
-      .catch(function(err) {
-        // eslint-disable-next-line
-        console.log(err.message);
-      });
-});
-/*______________________________________________________________________________*/
-
 process.on("SIGINT", () => {
     dbClient.close();
     console.log('Server down!')

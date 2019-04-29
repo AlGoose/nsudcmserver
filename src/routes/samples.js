@@ -7,11 +7,6 @@ const request = require('request');
 const ObjectId = require("mongodb").ObjectId;
 
 
-router.use(function timeLog(req, res, next) {
-    console.log('Samples router! Time: ', Date.now());
-    next();
-});
-
 router.get("/api/samples/:id", function (req, res) {
     let tmp = [];
 

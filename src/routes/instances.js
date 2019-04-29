@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router();
 const jsonParser = express.json();
 const assert = require('assert');
+const ObjectId = require("mongodb").ObjectId;
+const axios = require('axios');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+const fs = require('fs');
 
-
-router.use(function timeLog(req, res, next) {
-    console.log('Instances router! Time: ', Date.now());
-    next();
-});
 
 router.get('/api/instances', function (req, res) {
     const collection = req.app.locals.instances;
@@ -15,6 +15,19 @@ router.get('/api/instances', function (req, res) {
         assert.equal(err, null);
         res.send(docs)
     });
+})
+
+router.get('/api/instances/:id', function (req, res) {
+    const id = req.params.id;
+    axios
+        .get('http://localhost:8042/instances/' + id + '/simplified-tags')
+        .then(function (result) {
+            res.send(result.data)
+        })
+        .catch(function (err) {
+            console.log(err.message);
+            res.sendStatus(500);
+        });
 })
 
 router.post('/api/instances/tags', jsonParser, function (req, res) {
@@ -34,19 +47,42 @@ router.post('/api/instances/tags', jsonParser, function (req, res) {
     }
 })
 
-router.post("/api/instances", jsonParser, function (req, res) {
-    if (!req.body) return res.sendStatus(400);
+router.post("/api/instances", upload.single('file'), function (req, res) {
+    if (!req.file) return res.sendStatus(400);
 
-    const instance = {
-        instanceID: req.body.instanceID,
-        tags: JSON.parse(req.body.tags)
-    };
+    axios({
+        method: 'post',
+        url: 'http://localhost:8042/instances',
+        headers: {
+            'content-type': 'application/octet-stream',
+            'content-length': fs.statSync(req.file.path).size
+        },
+        data: fs.createReadStream(req.file.path)
+    })
+        .then(function (result) {
+            console.log('Bingo!');
+            console.log(result.data);
+            fs.unlink(req.file.path, function (err) {
+                if (err) {
+                    console.log('Cant delete file!');
+                    res.status(500).end();
+                } else {
+                    console.log(req.file.path + ' was deleted!');
+                    res.status(200).end();
+                }
+            });
+        });
 
-    const collection = req.app.locals.instances;
-    collection.insertOne(instance, function (err, result) {
-        if (err) return console.log(err);
-        res.send(result.ops);
-    });
+    // const instance = {
+    //     instanceID: req.body.instanceID,
+    //     tags: JSON.parse(req.body.tags)
+    // };
+
+    // const collection = req.app.locals.instances;
+    // collection.insertOne(instance, function (err, result) {
+    //     if (err) return console.log(err);
+    //     res.send(result.ops);
+    // });
 });
 
 router.put("/api/instances", jsonParser, function (req, res) {

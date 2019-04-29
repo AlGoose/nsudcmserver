@@ -2,12 +2,8 @@ const express = require('express');
 const router = express.Router();
 const jsonParser = express.json();
 const assert = require('assert');
+const ObjectId = require("mongodb").ObjectId;
 
-
-router.use(function timeLog(req, res, next) {
-    console.log('Employees router! Time: ', Date.now());
-    next();
-});
 
 router.get('/api/employees', function (req, res) {
     const collection = req.app.locals.employees;
