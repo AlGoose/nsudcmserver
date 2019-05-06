@@ -47,7 +47,7 @@ router.post('/api/instances/tags', jsonParser, function (req, res) {
     }
 })
 
-router.post("/api/instances", upload.single('file'), function (req, res) {
+router.post("/api/instances", upload.single('file'), jsonParser, function (req, res) {
     if (!req.file) return res.sendStatus(400);
 
     axios({
@@ -60,8 +60,33 @@ router.post("/api/instances", upload.single('file'), function (req, res) {
         data: fs.createReadStream(req.file.path)
     })
         .then(function (result) {
-            console.log('Bingo!');
             console.log(result.data);
+            switch(result.data.Status) {
+                case 'Success':
+                    console.log('111111');
+                    break;
+                
+                case 'AlreadyStored':
+                    console.log('222222');
+                    res.status(500).send('This file already stored!');
+                    return;
+
+                default:
+                    console.log('333333');
+                    res.status(500).send('Something go wrong!');
+                    return;
+            }
+
+            const instance = {
+                instanceID: result.data.ID,
+                tags: JSON.parse(JSON.stringify(req.body.tags))
+            };
+
+            const collection = req.app.locals.instances;
+            collection.insertOne(instance, function (err, result) {
+                if (err) return console.log(err);
+            });
+
             fs.unlink(req.file.path, function (err) {
                 if (err) {
                     console.log('Cant delete file!');
@@ -72,17 +97,6 @@ router.post("/api/instances", upload.single('file'), function (req, res) {
                 }
             });
         });
-
-    // const instance = {
-    //     instanceID: req.body.instanceID,
-    //     tags: JSON.parse(req.body.tags)
-    // };
-
-    // const collection = req.app.locals.instances;
-    // collection.insertOne(instance, function (err, result) {
-    //     if (err) return console.log(err);
-    //     res.send(result.ops);
-    // });
 });
 
 router.put("/api/instances", jsonParser, function (req, res) {

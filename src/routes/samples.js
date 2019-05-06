@@ -5,7 +5,9 @@ const fs = require('fs');
 const archiver = require('archiver');
 const request = require('request');
 const ObjectId = require("mongodb").ObjectId;
+const sgMail = require('@sendgrid/mail');
 
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 router.get("/api/samples/:id", function (req, res) {
     let tmp = [];
@@ -78,24 +80,50 @@ router.post("/api/samples", jsonParser, function (req, res) {
 
     const sample = {
         username: req.body.username,
+        email: req.body.email,
         time: new Date().toLocaleString(),
         instances: req.body.instances
     };
 
     const collection = req.app.locals.samples;
     collection.insertOne(sample, function (err, result) {
-        if (err) return console.log(err);
-        res.send(result.ops);
+        if (err) return res.sendStatus(500);
+
+        const msg = {
+            to: req.body.email,
+            from: 'alex@nsudcm.com',
+            subject: 'Research Files',
+            html: 'http://localhost:2019/api/samples/' + result.ops[0]._id,
+        };
+
+        sgMail
+            .send(msg)
+            .then(() => {
+                res.sendStatus(200);
+            })
+            .catch(() => {
+                const id = new ObjectId(result.ops[0]._id);
+                collection.findOneAndDelete({ _id: id }, function (err, result) {
+                    res.sendStatus(500);
+                });
+            });
     });
 });
 
+router.get("/api/samples", function(req,res) {
+    const collection = req.app.locals.samples;
+    collection.find({}).toArray(function (err, docs) {
+        if(err) return res.sendStatus(500);
+        res.send(docs)
+    });
+})
+
 router.delete("/api/samples/:id", function (req, res) {
-    console.log(req.params.id);
     const id = new ObjectId(req.params.id);
     const collection = req.app.locals.samples;
     collection.findOneAndDelete({ _id: id }, function (err, result) {
-        if (err) return console.log(err);
-        res.send(result.value);
+        if (err) return res.sendStatus(500);
+        res.sendStatus(200);
     });
 });
 
