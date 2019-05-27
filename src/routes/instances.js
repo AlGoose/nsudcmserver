@@ -8,7 +8,7 @@ const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 const fs = require('fs');
 
-
+//ПОЛУЧЕНИЕ СПИСКА ФАЙЛОВ
 router.get('/api/instances', function (req, res) {
     const collection = req.app.locals.instances;
     collection.find({}).toArray(function (err, docs) {
@@ -17,6 +17,7 @@ router.get('/api/instances', function (req, res) {
     });
 })
 
+//ПОЛУЧЕНИЕ ПОДРОБНОЙ ИНФОРМАЦИИ О ФАЙЛЕ
 router.get('/api/instances/:id', function (req, res) {
     const id = req.params.id;
     axios
@@ -30,6 +31,7 @@ router.get('/api/instances/:id', function (req, res) {
         });
 })
 
+//ПОИСК ФАЙЛОВ ПО ТЕГАМ
 router.post('/api/instances/tags', jsonParser, function (req, res) {
     if (!req.body) return res.sendStatus(400);
 
@@ -47,6 +49,7 @@ router.post('/api/instances/tags', jsonParser, function (req, res) {
     }
 })
 
+//ДОБАВЛЕНИЕ ФАЙЛА
 router.post("/api/instances", upload.single('file'), jsonParser, function (req, res) {
     if (!req.file) return res.sendStatus(400);
 
@@ -63,23 +66,20 @@ router.post("/api/instances", upload.single('file'), jsonParser, function (req, 
             console.log(result.data);
             switch(result.data.Status) {
                 case 'Success':
-                    console.log('111111');
                     break;
                 
                 case 'AlreadyStored':
-                    console.log('222222');
                     res.status(500).send('This file already stored!');
                     return;
 
                 default:
-                    console.log('333333');
                     res.status(500).send('Something go wrong!');
                     return;
             }
 
             const instance = {
                 instanceID: result.data.ID,
-                tags: JSON.parse(JSON.stringify(req.body.tags))
+                tags: req.body.tags === "" ? null : req.body.tags.split(',')
             };
 
             const collection = req.app.locals.instances;
@@ -96,35 +96,52 @@ router.post("/api/instances", upload.single('file'), jsonParser, function (req, 
                     res.status(200).end();
                 }
             });
+        })
+        .catch(function (error) {
+            console.log(error);
+            res.sendStatus(500);
         });
 });
 
+//ЗАМЕНА ТЕГОВ
 router.put("/api/instances", jsonParser, function (req, res) {
     if (!req.body) return res.sendStatus(400);
+    console.log(req.body);
 
     const collection = req.app.locals.instances;
     collection.findOneAndUpdate({
         _id: ObjectId(req.body._id)
     }, {
             $set: {
-                instanceID: req.body.ID,
-                tags: JSON.parse(req.body.tags)
+                instanceID: req.body.instanceID,
+                tags: req.body.tags
             }
         }, {
             returnOriginal: false
         },
         function (err, result) {
-            if (err) return console.log(err);
-            res.send(result.value);
+            if (err) return res.sendStatus(500);
+            res.sendStatus(200);
         });
 });
 
+//УДАЛЕНИЕ ФАЙЛА
 router.delete("/api/instances/:id", function (req, res) {
     const id = new ObjectId(req.params.id);
     const collection = req.app.locals.instances;
     collection.findOneAndDelete({ _id: id }, function (err, result) {
-        if (err) return console.log(err);
-        res.send(result.value);
+        if (err) return res.sendStatus(500);
+
+        axios
+        .delete("http://localhost:8042/instances/" + result.value.instanceID)
+        .then(function() {
+            console.log("Deleted");
+            res.sendStatus(200);
+        })
+        .catch(function(err) {
+            console.log("Not Deleted")
+            res.sendStatus(500);
+        });
     });
 });
 
