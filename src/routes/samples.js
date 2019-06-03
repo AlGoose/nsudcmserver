@@ -20,7 +20,6 @@ router.get("/api/samples/:id", function (req, res) {
     output.on('close', function () {
         console.log(archive.pointer() + ' total bytes');
         console.log('archiver has been finalized and the output file descriptor has closed.');
-        // res.end();
         res.sendFile(__dirname + '/example.zip', function () {
 
             tmp.forEach(function (item) {
