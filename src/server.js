@@ -11,13 +11,11 @@ app.use(function(req, res, next) {
 });
 
 const mongoClient = new MongoClient("mongodb://localhost:27017/", { useNewUrlParser: true });
-// let dbClient = null;
 
 mongoClient.connect(function(err, client) {
   assert.equal(null, err);
   console.log("Connected successfully to database");
 
-  // dbClient = client;
   app.locals.employees = client.db("dcmdb").collection("employees");
   app.locals.instances = client.db("dcmdb").collection("instances");
   app.locals.samples = client.db("dcmdb").collection("samples");
@@ -33,9 +31,3 @@ var samples = require("./routes/samples");
 app.use(employees);
 app.use(instances);
 app.use(samples);
-
-// process.on("SIGINT", () => {
-//     dbClient.close();
-//     console.log('Server down!')
-//     process.exit();
-// });
